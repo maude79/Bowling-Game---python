@@ -5,26 +5,39 @@ import sys, os
 from random import randint     
 from argparse import ArgumentParser
 
+'''
+User defined Exception classes
+'''
 class  Error (Exception):
     """Base class for user defined exceptions"""
     pass 
 
 class TooSmallValue(Error):
-    """Raise exception if a value in the file is negative""" 
+    """Value in input file is negative""" 
     pass
 
 class TooLargeValue(Error):
-    """Raise exception if a value in the file is greater than 10"""
+    """Value in input file is greater than 10"""
     pass
 
 class ValueOfFrameTooLarge(Error):
-    """Raise exception if the total pins knocked down in a frame is larger than 10"""
+    """Total pins knocked down in a frame is larger than 10"""
     pass
 
 class MissingBonusRolls(Error):
-    """Raise exception if the last frame was a spare or a strike and is missing a (or 2) bonus roll(s))"""
+    """Last frame was a spare or strike but is missing bonus rolls)"""
     pass
 
+
+'''
+* User defined class for the Bowling game:
+ - The Game class keeps track of the 10 frames within a game and sums up
+   the total game score once the 10 frames have been generated.
+ - The Frame class holds information about the rolls and how many pins
+   were knocked down per roll (i.e. number of points achieved per roll);
+   It also keeps an string attribute for printing Strikes, Spares and
+   gutter balls correectly (X, /, -)
+'''
 class Game():
     def __init__(self):
         self.frames = []
@@ -38,23 +51,26 @@ class Game():
 
     def calculate_game_score(self):
         for idx, frame in enumerate(self.frames):
-            frame_score = sum(list(frame.roll_data))
+            frame_score = sum(list(frame.roll_points))
             if frame_score == 10 and idx != 9:
-                next_frame_rolls = self.frames[idx+1].roll_data
-                if 10 in frame.roll_data:
+                next_frame_rolls = self.frames[idx+1].roll_points
+                if 10 in frame.roll_points:
                     frame_score += next_frame_rolls[0]
-                    frame_score += next_frame_rolls[1] if len(next_frame_rolls) >= 2 else self.frames[idx+2].roll_data[0]
+                    if len(next_frame_rolls) >= 2:
+                        frame_score += next_frame_rolls[1]
+                    else:
+                        frame_score += self.frames[idx+2].roll_points[0]
                 else:
                     frame_score += next_frame_rolls[0]
             
             self.score += frame_score
        
     def print_ids(self, frame):
-        w = len(frame.roll_output) - 2
+        w = len(frame.roll_str) - 2
         return "| {:^{width}} ".format(frame.id, width=w)
 
     def print_rolls(self, frame):
-        return "|{}".format(frame.roll_output)
+        return "|{}".format(frame.roll_str)
          
     def __str__(self):
         for item in map(self.print_ids, self.frames):
@@ -71,42 +87,48 @@ class Game():
 class Frame():
     def __init__(self, index):
     	self.id = "f{}".format(index)
-    	self.roll_data = None
-    	self.roll_output = ""
+    	self.roll_points = None
+    	self.roll_str = ""
 
     def set_roll_info(self, *args):
-        self.roll_data = args
-        self.format_output(self.roll_data)
+        self.roll_points = args
+        self.points_to_str(self.roll_points)
 
-    def format_output(self, roll_data):
-        if len(roll_data) == 1:
-            self.roll_output = "X   "
-        elif len(roll_data) == 2:
-            if sum(roll_data) == 10:
-                if 10 in roll_data:
-                    self.roll_output = "-, X"
+    def points_to_str(self, points):
+        if len(points) == 1:
+            self.roll_str = "X   "
+        elif len(points) == 2:
+            if sum(points) == 10:
+                if 10 in points:
+                    self.roll_str = "-, X"
                 else:
-                    self.roll_output = "{}, /".format(roll_data[0])
+                    self.roll_str = "{}, /".format(points[0])
             else:
-                arg1 = "-" if roll_data[0] == 0 else roll_data[0]
-                arg2 = "-" if roll_data[1] == 0 else roll_data[1]
-                self.roll_output = "{}, {}".format(arg1, arg2) 
+                arg1 = "-" if points[0] == 0 else points[0]
+                arg2 = "-" if points[1] == 0 else points[1]
+                self.roll_str = "{}, {}".format(arg1, arg2) 
         elif self.id == "f10": 
-            if 10 not in roll_data:
-                self.roll_output = "{}, /, {}".format(roll_data[0], roll_data[2])
+            if 10 not in points:
+                self.roll_str = "{}, /, {}".format(points[0], points[2])
             else:
-                if roll_data[0] == 10:
-                   self.roll_output = "X, {}, {}".format(roll_data[1], roll_data[2]) 
+                if points[0] == 10:
+                   self.roll_str = "X, {}, {}".format(points[1], points[2]) 
                 else:
-                   self.roll_output = "-, X, {}, {}".format(roll_data[2], roll_data[3])
+                   self.roll_str = "-, X, {}, {}".format(points[2], points[3])
             
 
     def __str__(self):
-        return "{}".format(self.roll_output)
+        return "{}".format(self.roll_str)
 
     __repr__ = __str__
 
 
+'''
+* 2 functions: generate_game_with_random_values and 
+  generate_game_with_file_values
+* These generate a game (and its 10 frames) based on input filee values
+  or if no file i provided, the program randomly generates a game for us 
+'''
 def generate_game_with_random_values(game):
     while game.number_of_frames() < 10:
         turn = game.number_of_frames() + 1
@@ -116,7 +138,7 @@ def generate_game_with_random_values(game):
             if turn < 10:
                 frame.set_roll_info(10)
             else:
-                #we're in the 10th frame and it's a strike, so player gets 2 more rolls
+                #10th frame: player gets 2 bonus rolls after a strike
                 bonus_roll1 = randint(0, 10)
                 remaining_pins = 10 - bonus_roll1
                 bonus_roll2 = randint(0, (remaining_pins if remaining_pins != 0 else 10))
@@ -127,13 +149,14 @@ def generate_game_with_random_values(game):
                 frame.set_roll_info(roll1, roll2)
             else:
                 if roll2 == 10:
-                    #we're in the 10th frame, roll1 was a gutter ball and roll2 was a strike, so the player gets 2 bonus rolls
+                    #10th frame: roll1 was a gutter ball, roll2 a strike
+                    #player gets 2 bonus rolls
                     bonus_roll1 = randint(0, 10)
                     remaining_pins = 10 - bonus_roll1
                     bonus_roll2 = randint(0, (remaining_pins if remaining_pins != 0 else 10))
                     frame.set_roll_info(0, 10, bonus_roll1, bonus_roll2)
                 elif roll1 + roll2 == 10:
-                    #we're in the 10th frame and it's a spare, so the player gets 1 bonus roll
+                    #10th frame: player gets 1 bonus roll after a spare
                     bonus_roll = randint(0, 10)
                     frame.set_roll_info(roll1, roll2, bonus_roll)
                 else:
@@ -155,14 +178,14 @@ def generate_game_with_file_values(values, game):
                     frame.set_roll_info(roll1)
                     idx = idx1 + 1
                 else:
-                    #we're handling the 10th frame and expect 2 more values since we encountered a strike
+                    #10th frame: use 2 more values after a strike
                     idx2 = idx1 + 1
                     idx3 = idx2 + 1
                     try:
                         if idx3 > len(values) - 1:
                             raise MissingBonusRolls
                     except MissingBonusRolls:
-                        sys.exit("The input file contains a strike in the last frame but is missing one or both required bonus roll points; please add these") 
+                        sys.exit("Input file is missing bonus rolls") 
                     else:
                         roll2 = values[idx2]
                         roll3 = values[idx3]
@@ -176,20 +199,20 @@ def generate_game_with_file_values(values, game):
                 elif roll1 + roll2 > 10:
                     raise ValueOfFrameTooLarge
                 else:
-                    #spare or strike in second roll (1st roll was a gutter ball)
+                    #spare or strike in 2nd roll (1st roll was a gutter)
                     if turn < 10:
                         frame.set_roll_info(roll1, roll2)
                     else:
-                        #handle bonus rolls in the 10th frame 
+                        #10th frame: handle bonus rolls
                         idx3 = idx2 + 1
                         if roll2 == 10:
-                            #the second roll was a strike
+                            #2nd roll was a strike
                             idx4 = idx3 + 1
                             try:
                                 if idx4 > len(values) - 1:
                                     raise MissingBonusRolls
                             except MissingBonusRolls:
-                                sys.exit("The input file contains a strike in the last frame but is missing one or both required bonus roll points; please add these") 
+                                sys.exit("Input file is missing bonus rolls") 
                             else:
                                 roll3 = values[idx3]
                                 roll4 = values[idx4]
@@ -200,20 +223,24 @@ def generate_game_with_file_values(values, game):
                                 if idx3 > len(values) - 1:
                                     raise MissingBonusRolls
                             except MissingBonusRolls:
-                                sys.exit("The input file contains a spare in the last frame but is missing the required bonus roll points; please add these") 
+                                sys.exit("Input file is missing bonus roll") 
                             else:
                                 roll3 = values[idx3]
                                 frame.set_roll_info(roll1, roll2, roll3)
                         
         except ValueOfFrameTooLarge:
-            sys.exit("The values {} and {} at indexes {} and {} belong to the same frame but their sum exceeds 10, please adjust the values in the input file".format(roll1, roll2, idx1, idx2))
+            sys.exit("Sum of frame points {} and {} (idx:{} and {}) exceeds 10".format(roll1, roll2, idx1, idx2))
         else:
             game.add_frame(frame)
-              
-            
+
+
+'''
+The below 2 functions parse the command line and the input file (if one
+is provided)
+'''              
 def parse_command_line():
     parser = ArgumentParser(description='Play a game of Bowling!')
-    parser.add_argument('-file', help='provide an input file with a comma separated list of numbers between 0 and 10')
+    parser.add_argument('-file', help='provide an input file with a comma separated list of digits between 0 and 10')
     return parser.parse_args()
 
 
@@ -229,11 +256,11 @@ def parse_file(input_file):
                 elif digit > 10:
                     raise TooLargeValue
             except ValueError:
-                sys.exit("Cannot process input file; file must contain a comma separated list of integers only")
+                sys.exit("Input file must contain comma separated list of integers only")
             except TooSmallValue:
-                sys.exit("Cannot process input file; encountered a negative value, file must contain a comma separated list of integers between 0 and 10")
+                sys.exit("Negative values are not accepted, only values between 0 and 10")
             except TooLargeValue:
-                sys.exit("Cannot process input file; encountered a value greater than 10, file must contain a comma separated list of integers between 0 and 10")
+                sys.exit("Values > 10 are not accepted, only values between 0 and 10")
             else: 
                 input_values.append(digit)
     
@@ -248,7 +275,7 @@ def main():
         generate_game_with_random_values(game)
     else:
         if not os.path.isfile(args.file):
-            sys.exit("The file '{}' does not exist - please provide a valid file name".format(args.file))
+            sys.exit("File '{}' does not exist - pls provide a valid file name".format(args.file))
         input_values = parse_file(args.file)
         generate_game_with_file_values(input_values, game) 
 
