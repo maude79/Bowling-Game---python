@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-
 import sys, os
 from random import randint     
 from argparse import ArgumentParser
@@ -30,7 +29,7 @@ class MissingBonusRolls(Error):
 
 
 '''
-* User defined class for the Bowling game:
+* User defined classes for the Bowling game:
  - The Game class keeps track of the 10 frames within a game and sums up
    the total game score once the 10 frames have been generated.
  - The Frame class holds information about the rolls and how many pins
