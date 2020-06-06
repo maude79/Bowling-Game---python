@@ -1,0 +1,137 @@
+Bowling Case - Test Report
+==========================
+
+Assumptions made and other notes:
+---------------------------------
+* The program has been written in python.
+
+* The program has been written in python, version 3.7,  no need for any specific 
+  packages / modules installed other than the standard python packages
+
+* The input file is located in the same directory as the program itself, no 
+  other checks performed other than making sure the file exists.
+
+* Tests performed:
+ - Reading the command line
+
+  + Input file is passed
+    If a ‘-f <file_name>’ is passed as optional argument to the script, the 
+    script verifies that the file exists before parsing it. If no valid file is 
+    found, the script prints error message and exits
+
+          maude$ ./bowling.py -f non_existent_file
+          File 'non_existent_file' does not exist - pls provide a valid file name    
+          maude$ 
+
+ 
+  + If a filename is passed without the ‘-f’, script prints usage
+ 
+          maude$ ./bowling.py input_file1 
+          usage: bowling.py [-h] [-file FILE]
+          bowling.py: error: unrecognized arguments: input_file1
+ 
+ 
+  + Running the script without the ‘-f’ options generates a random game
+
+          maude$ ./bowling.py
+          | f1 | f2 | f3 | f4 | f5 | f6 | f7 | f8 | f9 | f10 |
+          |8, /|4, 1|4, /|8, 1|7, 2|2, 7|6, 2|8, /|5, 3|3, - |
+          Game score: 98
+          maude$ ./bowling.py
+          | f1 | f2 | f3 | f4 | f5 | f6 | f7 | f8 | f9 | f10 |
+          |-, 1|7, /|2, 3|3, 1|6, /|3, 2|6, 1|6, 1|8, -|1, 6 |
+          Game score: 69
+          maude$ 
+
+
+ - File format checks
+
+  + Any other character than digits is not accepted
+
+          maude$ cat wrong_file_format1
+          2,, 5, 4, 9, 1, 2, 5, 3, 2, 4, 2, 3, 3, 4, 6, 10, 0, 10, 4, 2
+          maude$ ./bowling.py -f wrong_file_format1
+          Input file must contain comma separated list of integers only
+
+          maude$ cat wrong_file_format2
+          2, 3, 5, 4, 9, 1, h, 5, 3, 2, 4, 2, 3, 3, 4, 6, 10, 0, 10, 4, 2
+          maude$ ./bowling.py -f wrong_file_format2
+          Input file must contain comma separated list of integers only
+
+
+  + Digits that are greater than 10 or negative are not accepted
+
+          maude$ cat file_with_too_big_numbers 
+          2, 3, 5, 14, 9, 1, 2, 5, 3, 2, 4, 2, 3, 3, 4, 6, 10, 0, 10, 4, 2
+          maude$ ./bowling.py -f file_with_too_big_numbers 
+          Values > 10 are not accepted, only values between 0 and 10
+
+          maude$ cat file_with_negative_numbers 
+          2, 3, 5, -4, 9, 1, 2, 5, 3, 2, 4, 2, 3, 3, 4, 6, 10, 0, 10, 4, 2
+          maude$ ./bowling.py -f file_with_negative_numbers 
+          Negative values are not accepted, only values between 0 and 10
+
+
+  + Frames with a total score larger than 10 are not accepted
+
+          maude$ cat file_frames_with_total_exceeding_10
+          2, 3, 5, 4, 9, 1, 2, 5, 3, 2, 4, 8, 3, 3, 4, 6, 10, 0, 10, 4, 2
+          maude$ ./bowling.py -f file_frames_with_total_exceeding_10
+          Sum of frame points 4 and 8 (idx:10 and 11) exceeds 10
+
+
+  + If the 10th frame has a strike or spare and bonus rolls are missing, it is not accepted
+
+          maude$ cat file_missing_bonus_rolls 
+          2, 3, 5, 4, 9, 1, 2, 5, 3, 2, 4, 2, 3, 3, 4, 6, 10, 10, 4
+          maude$ ./bowling.py -f file_missing_bonus_rolls
+          Input file is missing bonus rolls
+
+          maude$ cat file_missing_bonus_rolls2
+          2, 3, 5, 4, 9, 1, 2, 5, 3, 2, 4, 2, 3, 3, 4, 6, 10, 9, 1
+          maude$ ./bowling.py -f file_missing_bonus_rolls2
+          Input file is missing bonus rolls
+
+
+ - Randomly generated games: verified that program computes valid frames
+
+          maude$ ./bowling.py
+          | f1 | f2 | f3 | f4 | f5 | f6 | f7 | f8 | f9 | f10 |
+          |X   |X   |2, 6|8, -|5, 3|5, -|2, 2|3, 5|1, 8|8, 1 |
+          Game score: 99
+
+          maude$ ./bowling.py
+          | f1 | f2 | f3 | f4 | f5 | f6 | f7 | f8 | f9 |  f10  |
+          |5, 2|8, -|5, /|X   |3, -|-, 3|8, 1|1, 7|-, 1|7, /, 2 |
+          Game score: 84
+
+          maude$ ./bowling.py
+          | f1 | f2 | f3 | f4 | f5 | f6 | f7 | f8 | f9 | f10 |
+          |1, 2|3, 5|3, 6|-, X|7, 1|4, -|-, 6|7, -|8, -|6, 1 |
+          Game score: 78
+
+          maude$ ./bowling.py
+          | f1 | f2 | f3 | f4 | f5 | f6 | f7 | f8 | f9 | f10 |
+          |-, 1|4, -|4, -|1, -|1, 5|5, /|X   |8, 1|1, 3|7, 1 |
+          Game score: 76
+
+          maude$ ./bowling.py
+          | f1 | f2 | f3 | f4 | f5 | f6 | f7 | f8 | f9 | f10 |
+          |-, 3|X   |8, -|-, 6|4, 2|9, /|X   |3, 3|X   |3, 1 |
+          Game score: 101
+
+
+ - Score check
+  + Verified that the program computed the correct scores for both randomly
+    generated games and input file generated games.
+  + Created a small script that re-ran the program with random game generation 
+    every 2 seconds to verify both the score results and that to rule out that 
+    the program didn’t have any bug that may only be triggered under very 
+    specific circumstances.
+
+
+
+
+
+
+
